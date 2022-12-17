@@ -13,7 +13,7 @@ rtl_dir = tests_dir                                    #path to hdl folder where
                                    
 #run tests with generic values for length
 @pytest.mark.parametrize("parameter", [{"g_width": str(i),"g_depth": str(i)} for i in range(4,9,1)])
-def test_bcd_bin(parameter):
+def test_fifo(parameter):
 
     module = "testbench"
     toplevel = "async_fifo"   
@@ -37,6 +37,3 @@ def test_bcd_bin(parameter):
         + "_".join(("{}={}".format(*i) for i in parameter.items())),
     )
 
-    # if __name__ == "__main__":
-    #   test_bin_bcd(parameter)
-    #     test_bcd_bin(parameter)
