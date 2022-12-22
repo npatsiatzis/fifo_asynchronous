@@ -50,8 +50,9 @@ async def reset(dut,cycles=1):
 
 @cocotb.test()
 async def test_overflow(dut):
-	cocotb.start_soon(Clock(dut.i_clkW, 5, units="ns").start())
-	cocotb.start_soon(Clock(dut.i_clkR, 20, units="ns").start())
+	#clocks with variable phase difference
+	cocotb.start_soon(Clock(dut.i_clkW, (1/(2*10**8)), units="sec").start())
+	cocotb.start_soon(Clock(dut.i_clkR, 22, units="ns").start())
 	await reset(dut,5)	
 
 	wr = 1 
@@ -89,8 +90,9 @@ async def test_overflow(dut):
 
 @cocotb.test()
 async def test_underflow(dut):
-	cocotb.start_soon(Clock(dut.i_clkW, 5, units="ns").start())
-	cocotb.start_soon(Clock(dut.i_clkR, 20, units="ns").start())
+	#clocks with variable phase difference
+	cocotb.start_soon(Clock(dut.i_clkW, 3, units="ns").start())
+	cocotb.start_soon(Clock(dut.i_clkR, 11, units="ns").start())
 	await reset(dut,5)
 
 	data = random.randint(0,2**g_width-1)
