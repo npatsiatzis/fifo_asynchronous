@@ -62,13 +62,11 @@ async def test_overflow(dut):
 	dut.i_dataW.value = data
 	dut.i_ren.value = rd
 
-	cnt = 0
 
 	await RisingEdge(dut.i_clkW)
 	for i in range(2**g_depth +2):
-		if(cnt < 2**g_depth):
+		if(i < 2**g_depth):
 			fifo.append(data)
-			cnt +=1
 		data = random.randint(0,2**g_width-1)
 		dut.i_dataW.value = data
 		await RisingEdge(dut.i_clkW)
@@ -80,7 +78,9 @@ async def test_overflow(dut):
 	dut.i_wren.value = wr
 	dut.i_dataW.value = data
 	dut.i_ren.value = rd
-	
+	await RisingEdge(dut.i_clkR)
+	while(dut.o_empty.value == 1):
+		await RisingEdge(dut.i_clkR)
 	for i in range(2**g_depth):
 		await RisingEdge(dut.i_clkR)
 		fifo_rd.append(int(dut.o_dataR.value))
@@ -93,11 +93,7 @@ async def test_underflow(dut):
 	cocotb.start_soon(Clock(dut.i_clkR, 20, units="ns").start())
 	await reset(dut,5)
 
-	# ready_A = 1 
 	data = random.randint(0,2**g_width-1)
-
-	# dut.i_ready_A.value = ready_A 
-	# dut.i_data_A.value = data 
 
 	await RisingEdge(dut.i_clkW)
 	for i in range (2):

@@ -7,8 +7,8 @@ use ieee.numeric_std.all;
 entity async_fifo is 
 generic(
 	g_stages : natural :=2;
-	g_width  : natural :=4;
-	g_depth  : natural :=2);
+	g_width  : natural :=8;
+	g_depth  : natural :=8);
 port(
 	i_clkW : in std_ulogic;
 	i_arstnW : in std_ulogic;
@@ -165,23 +165,20 @@ begin
 	begin
 		if(i_arstnR = '0') then
 			o_empty <= '1';
-		else
+		elsif(rising_edge(i_clkR)) then
 			o_empty <= o_empty_next;
 		end if;
 	end process; -- reg_empty
 
-	--Read from the memory
-	o_dataR <= memory(to_integer(unsigned(addr_r)));
-
-	--fifo_read : process(i_clkR)
-	--begin
-	--	if(i_arstnR = '0') then
-	--		o_dataR <= (others => '0');
-	--	elsif(rising_edge(i_clkR)) then
-	--		if(i_ren = '1' and (o_empty = '0')) then
-	--			o_dataR <= memory(to_integer(unsigned(addr_r)));
-	--		end if;
-	--	end if;
-	--end process; -- fifo_read
+	fifo_read : process(i_clkR)
+	begin
+		if(i_arstnR = '0') then
+			o_dataR <= (others => '0');
+		elsif(rising_edge(i_clkR)) then
+			if(i_ren = '1' and (o_empty = '0')) then
+				o_dataR <= memory(to_integer(unsigned(addr_r)));
+			end if;
+		end if;
+	end process; -- fifo_read
 
 end rtl;
