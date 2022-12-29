@@ -1,15 +1,17 @@
 import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import Timer,RisingEdge,FallingEdge,ClockCycles
+from cocotb.utils import get_sim_time
 from cocotb.result import TestFailure
 import random
 from cocotb_coverage.coverage import CoverCross,CoverPoint,coverage_db
 from cocotb.queue import Queue,QueueEmpty,QueueFull
 
 
-covered_value = []
+covered_number = []
 g_width = int(cocotb.top.g_width)
 g_depth = int(cocotb.top.g_depth)
+g_stages = int(cocotb.top.g_stages)
 fifo = []
 fifo_rd = []
 
@@ -20,16 +22,18 @@ data = 0
 
 
 # #Callback functions to capture the bin content showing
-def notify_full():
-	global full
-	full = True
-
+full_cross = False
+def notify():
+	global full_cross
+	full_cross = True
 
 # at_least = value is superfluous, just shows how you can determine the amount of times that
 # a bin must be hit to considered covered
-@CoverPoint("top.gray",xf = lambda x : x, bins = list(range(2**g_width)), at_least=1)
-def number_cover(x):
-	covered_value.append(x)
+@CoverPoint("top.data",xf = lambda x : x.i_dataW.value, bins = list(range(2**g_width)), at_least=1)
+@CoverPoint("top.wr",xf = lambda x : x.i_wren.value, bins = [True,False], at_least=1)
+@CoverCross("top.cross", items = ["top.wr","top.data"], at_least=1)
+def number_cover(dut):
+	covered_number.append((dut.i_wren.value,dut.i_dataW.value))
 	
 
 async def reset(dut,cycles=1):

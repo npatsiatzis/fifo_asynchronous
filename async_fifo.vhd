@@ -8,7 +8,7 @@ entity async_fifo is
 generic(
 	g_stages : natural :=2;
 	g_width  : natural :=8;
-	g_depth  : natural :=8);
+	g_depth  : natural :=2);
 port(
 	i_clkW : in std_ulogic;
 	i_arstnW : in std_ulogic;
