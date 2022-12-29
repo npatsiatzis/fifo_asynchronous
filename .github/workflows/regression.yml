@@ -1,0 +1,41 @@
+name: CoCoTB Regression Tests
+on: [push]
+jobs:
+  run_tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.10.6]
+  
+    env:
+      SIM: ghdl
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install cocotb-coverage
+        pip install cocotb-test
+        pip install pytest
+        pip install pytest-parallel
+        pip install pytest-xdist    
+    
+    - uses: ghdl/setup-ghdl-ci@nightly
+      with:
+        backend: mcode
+
+    - run: |
+        ghdl --version
+        $GHDL --version
+    
+    - name: regression
+      run: |
+        SIM=ghdl pytest -n auto -o log_cli=True --junitxml=test-results.xml --cocotbxml=test-cocotb.xml test_asynchronous_fifo.py
