@@ -16,5 +16,8 @@ test:
 		rm -rf sim_build
 		$(MAKE) sim MODULE=testbench TOPLEVEL=async_fifo
 
+formal :
+		sby --yosys "yosys -m ghdl" -f async_fifo.sby
+
 # include cocotb's make rules to take care of the simulator setup
 include $(shell cocotb-config --makefiles)/Makefile.sim

@@ -1,5 +1,5 @@
 ![example workflow](https://github.com/npatsiatzis/fifo_asynchronous/actions/workflows/regression.yml/badge.svg)
-
+![example workflow](https://github.com/npatsiatzis/fifo_asynchronous/actions/workflows/formal.yml/badge.svg)
 
 ### asynchronous FIFO RTL implementation
 

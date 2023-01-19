@@ -7,8 +7,8 @@ use ieee.numeric_std.all;
 entity async_fifo is 
 generic(
 	g_stages : natural :=2;
-	g_width  : natural :=8;
-	g_depth  : natural :=2);
+	g_width  : natural :=4;
+	g_depth  : natural :=4);
 port(
 	i_clkW : in std_ulogic;
 	i_arstnW : in std_ulogic;
@@ -58,13 +58,9 @@ begin
 		end if;		
 	end process; -- cdc_gray_r_2_w 
 
-	--Calculate the next write addres(bin) and the next gray write pointer
-	w_addr_calc : process(all)
-	begin
-		if(i_wren = '1' and (o_full = '0'))then
-			bin_w_next <= bin_w + 1;
-		end if;
-	end process; -- w_addr_calc
+	--express bin_w_next this way to avoid creating a latch
+	bin_w_next <= bin_w + (i_wren and (not o_full));
+
 	addr_w <= std_ulogic_vector(bin_w(g_depth-1 downto 0));
 	gray_w_next <= std_ulogic_vector(shift_right(bin_w_next,1)) xor std_ulogic_vector(bin_w_next);
 
@@ -128,13 +124,9 @@ begin
 		end if;
 	end process; -- cdc_gray_w_2_r
 
-	--Calculate the next read address(bin) and the next gray read pointer
-	r_addr_calc : process(all)
-	begin
-		if(i_ren = '1' and (o_empty = '0')) then
-			bin_r_next <= bin_r + '1'; 
-		end if;
-	end process; -- r_addr_calc
+
+	--express bin_r_next this way to avoid creating a latch
+	bin_r_next <= bin_r + (i_ren and (not o_empty));
 
 	addr_r <= std_ulogic_vector(bin_r(g_depth-1 downto 0));
 	gray_r_next <= std_ulogic_vector(shift_right(bin_r_next,1)) xor std_ulogic_vector(bin_r_next);
@@ -180,5 +172,7 @@ begin
 			end if;
 		end if;
 	end process; -- fifo_read
+
+	--o_dataR <= memory(to_integer(unsigned(addr_r)));
 
 end rtl;

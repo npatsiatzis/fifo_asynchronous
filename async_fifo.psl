@@ -1,0 +1,158 @@
+library ieee;
+use ieee.numeric_std.all;
+
+vunit formal_test(async_fifo(rtl)) {
+
+	default clock is rising_edge(i_clkW);
+
+	--#####################################################
+
+	--check conditions after reset
+	after_reset_wr : assert always {i_arstnW = '0'} |=>{bin_w = 0};
+	after_reset_rd : assert always {i_arstnR = '0'} |=>{bin_r = 0};
+
+
+
+	--key checks for FIFO functionality
+	--1) No data loss
+	--2) No reordering
+	--3) No data duplication
+
+	--basic proposition for formal verification of FIFO:
+	--check that for any two "random" data values that arrive in 
+	--predetermined order (here succesively) in the FIFO, they depart the FIFO 
+	--in the same order after being read
+
+	signal flag_in1 : std_ulogic := '0';
+	signal flag_in2 : std_ulogic := '0';
+	signal flag_out1 : std_ulogic := '0';
+	signal flag_out2 : std_ulogic := '0';
+
+
+	--random values to be pushed in succession to the FIFO 
+	signal val_1 : std_ulogic_vector(g_width -1 downto 0);
+	signal val_2 : std_ulogic_vector(g_width -1 downto 0);
+	attribute anyconst : boolean;
+	attribute anyconst of val_1 : signal is true;
+	attribute anyconst of val_2 : signal is true;
+
+
+	signal addr_1 : std_ulogic_vector(g_depth-1 downto 0);
+	attribute anyconst of addr_1 : signal is true;
+	signal addr_2 : std_ulogic_vector(g_depth -1 downto 0);
+
+	addr_2 <= (others => '0') when unsigned(addr_1) = 2**g_depth -1 else std_ulogic_vector(unsigned(addr_1) + 1);
+
+
+	type t_wr_states is (IDLE,S1,S2,S3);
+	signal wr_state : t_wr_states;
+
+	--#####################################################
+
+	-------------------
+	--ASSUME PROPERTIES
+	-------------------
+
+	--assume start conditions, not necesserily start from reset
+	--in any case, start with read/write addresses at 0.
+	reset_wr :assume {i_arstnW = '0' ; i_arstnW; true[+]; i_arstnW = '0' : i_arstnW};
+	reset_rd :assume {i_arstnR = '0' ; i_arstnR; true[+]; i_arstnR = '0' : i_arstnR};
+	--reset_addresses :assume {bin_w = 0 : bin_r = 0 : gray_w = 0 : gray_r = 0 : addr_w = 0 : addr_r = 0};
+
+	assume {o_full = '0' : o_full_next = '0' : o_empty = '1' : o_empty_next = '1'};
+
+	--assumptions regarding reset signals, both are
+	--synchronously asserted/deasserted
+	assume {not rose(i_arstnW)} |-> {not rose(i_arstnW)};
+	assume {not rose(i_arstnR)} |-> {not rose(i_arstnR)};
+	reset_domains : assume always{i_arstnW = i_arstnR};
+
+
+	--val_1 and val_2 should be different to check againt data duplication 
+	assume_diff_val : assume {val_1 /= val_2};
+
+
+	reset_fsm : assume {wr_state = IDLE};
+	push_data : assume always {flag_in1} |=> {flag_in2};
+
+	
+	--#####################################################
+
+	-------------------
+	--ASSERT PROPERTIES
+	-------------------
+
+	--check conditions after reset
+	check_wr_after_rst : assert always {fell(i_arstnW)} |=>{bin_w = 0};
+	check_rd_after_rst : assert always {fell(i_arstnR)} |=>{bin_r = 0};
+
+	--check that bin_w , bin_r remain stable in case of full and empty respectively.
+	check_addr_when_full : assert always {o_full ; i_arstnW} |-> {stable(bin_w)};
+	check_addr_when_empty: assert always {o_empty ; i_arstnR} |-> {stable(bin_r)};
+
+	--verify that output order is preserved (also checks duplication and dataloss indirectly)
+	assert_out_order : assert always {flag_out2} |-> {flag_out1};
+
+
+	assert_correct_data2 : assert always(({wr_state = S3 && i_ren && o_empty = '0'} |=> {o_dataR = val_2}) abort not i_arstnR);
+
+	process(i_clkW)
+	begin
+		if(rising_edge(i_clkW)) then
+			if(i_arstnW = '0') then
+				wr_state <= IDLE;
+				flag_in1 <= '0';
+				flag_in2 <= '0';
+				flag_out1 <= '0';
+				flag_out2 <= '0';
+			else
+				case(wr_state) is 
+					when IDLE =>
+						flag_in1 <= '0';
+						flag_in2 <= '0';
+						if(i_wren = '1' and o_full = '0' and addr_w = addr_1  and i_dataW = val_1) then
+							wr_state <= S1;
+							flag_in1 <= '1';
+						end if;
+		
+					when S1 =>
+						if(i_ren = '1' and o_empty = '0' and addr_w = addr_1 and memory(to_integer(unsigned(addr_1))) = val_1) then
+							wr_state <= IDLE;
+						elsif(i_wren = '1' and o_full = '0' and addr_w = addr_2 and i_dataW = val_2)then
+							wr_state <= S2;
+							flag_in2 <= '1';
+						end if;
+					when S2 =>
+						if(i_ren = '1' and o_empty = '0' and addr_r = addr_1 and memory(to_integer(unsigned(addr_1))) = val_1) then
+							wr_state <= S3;
+							flag_out1 <= '1';
+						end if;
+					when S3 =>
+						if(i_ren = '1' and o_empty = '0' and addr_r = addr_2 and memory(to_integer(unsigned(addr_2))) = val_2) then
+							wr_state <= IDLE;
+							flag_out2 <= '1';
+						end if;
+					when others =>
+						flag_out1 <= '0';
+						flag_out2 <= '0';
+				end case;
+			end if;
+		end if;
+	end process;
+
+	--#####################################################
+
+	------------------
+	--COVER PROPERTIES
+	------------------
+	
+	--cover empty to full and vice versa transitions
+	cover_full : cover{rose(o_full)};
+	cover_empty : cover{fell(o_empty)};
+	cover_full_to_empty : cover {true[*]; o_full;  true[*]; o_empty};
+	cover_empty_to_full : cover {true[*]; o_empty; true[*]; o_full};
+
+	--cover pushing the random consecutive data in FIFO and then reading them out
+	--cover the case of (non)-consecutive writes and (non)-consecutive reads
+	no_dupl_reord_loss : cover{wr_state = IDLE; wr_state = S1; wr_state = S2 [+]; wr_state=S3 [+];wr_state = IDLE};
+}
