@@ -27,6 +27,7 @@ jobs:
         pip install pytest
         pip install pytest-parallel
         pip install pytest-xdist
+        pip install pyuvm
     
     
     - uses: ghdl/setup-ghdl-ci@nightly
@@ -41,7 +42,7 @@ jobs:
       run: |
         cd pyuvm_sim/ && make
       
-    - name: Functional Coverage
+    - name: pyuvm Functional Coverage
       run: |
         cd pyuvm_sim/ && var=$(cat coverage.xml | grep -o -E 'cover_percentage.{0,5}' | head -1 | cut -f2- -d\")
         if [ $var = 100 ]; then exit 0; else exit 1; fi
