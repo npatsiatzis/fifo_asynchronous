@@ -22,9 +22,9 @@ jobs:
           $GHDL --version
       - name: formal verification
         run: |
-          sby --yosys "yosys -m ghdl" -f async_fifo.sby
+          cd formal/ && sby --yosys "yosys -m ghdl" -f async_fifo.sby
           
       - name: check results
         run: |
-          var=$(cat async_fifo_task_cover/async_fifo_task_cover.xml | grep -o -E 'failures.{0,3}' | head -1 | cut -f2- -d\") 
+          cd formal/ && var=$(cat async_fifo_task_cover/async_fifo_task_cover.xml | grep -o -E 'failures.{0,3}' | head -1 | cut -f2- -d\") 
           if [ $var = 0 ]; then exit 0; else exit 1; fi
