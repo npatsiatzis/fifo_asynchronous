@@ -1,0 +1,47 @@
+name: pyuvm Functional Coverage
+on: [push]
+jobs:
+  run_tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.10.6]
+  
+    env:
+      SIM: ghdl
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install cocotb-coverage
+        pip install cocotb-test
+        pip install pytest
+        pip install pytest-parallel
+        pip install pytest-xdist
+    
+    
+    - uses: ghdl/setup-ghdl-ci@nightly
+      with:
+        backend: llvm
+
+    - run: |
+        ghdl --version
+        $GHDL --version
+    
+    - name: regression
+      run: |
+        cd pyuvm_sim/ && make
+      
+    - name: Functional Coverage
+      run: |
+        cd pyuvm_sim/ && var=$(cat coverage.xml | grep -o -E 'cover_percentage.{0,5}' | head -1 | cut -f2- -d\")
+        if [ $var = 100 ]; then exit 0; else exit 1; fi
