@@ -26,11 +26,13 @@ jobs:
         pip install cocotb-test
         pip install pytest
         pip install pytest-parallel
-        pip install pytest-xdist    
+        pip install pytest-xdist
+        pip install pyuvm
+    
     
     - uses: ghdl/setup-ghdl-ci@nightly
       with:
-        backend: mcode
+        backend: llvm
 
     - run: |
         ghdl --version
