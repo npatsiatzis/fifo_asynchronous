@@ -27,28 +27,16 @@ def notify():
 
 # at_least = value is superfluous, just shows how you can determine the amount of times that
 # a bin must be hit to considered covered
-@CoverPoint("top.data",xf = lambda x : x.data, bins = list(range(2**g_width)), at_least=1)
-@CoverPoint("top.wr",xf = lambda x : x.wr, bins = [True,False], at_least=1)
-@CoverCross("top.cross", items = ["top.wr","top.data"], at_least=1)
-def number_cover(dut):
-    covered_cross.append((dut.wr,dut.data))
-
+# even if g_data_with is >8, do not exercize full range as it is extremelly comp. heavy
+@CoverPoint("top.i_tx_data",xf = lambda x : x, bins = list(range(2**4,2**5)), at_least=1)
+def number_cover(x):
+    pass
 
 class crv_inputs(crv.Randomized):
     def __init__(self,data):
         crv.Randomized.__init__(self)
         self.tx_data = data
         self.add_rand("tx_data",list(range(2**g_width)))
-
-# class crv_inputs(crv.Randomized):
-#     def __init__(self,wr,rd,data):
-#         crv.Randomized.__init__(self)
-#         self.wr = wr
-#         self.rd = rd 
-#         self.data = data
-#         self.add_rand("wr",list(range(2)))
-#         self.add_rand("rd",list(range(2)))
-#         self.add_rand("data",list(range(2**g_width)))
 
 # Sequence classes
 class SeqItem(uvm_sequence_item):
@@ -62,41 +50,7 @@ class SeqItem(uvm_sequence_item):
 
 
 class RandomSeq(uvm_sequence):
-    # def __init__(self,name,parent):
-    #     super().__init__(name,parent)
-    #     self.result = 0
-    #     # self.q = Queue(maxsize=2**g_depth)
     async def body(self):
-        #cover everything in the cross i_data,i_wr
-        # while full_cross != True:
-        #     data_tr = SeqItem("data_tr", None, None,None)
-        #     await self.start_item(data_tr)
-        #     data_tr.randomize_operands()
-        #     while((data_tr.i_crv.wr,data_tr.i_crv.data) in covered_cross):
-        #         data_tr.randomize_operands()
-        #     covered_cross.append((data_tr.i_crv.wr,data_tr.i_crv.data))
-        #     covered_values.append(data_tr.i_crv.data)
-
-        #     number_cover(data_tr.i_crv)
-        #     coverage_db["top.cross"].add_threshold_callback(notify, 100)
-
-
-
-        #     if (data_tr.i_crv.rd == 1 and q.full() != True):
-        #         try:
-        #             q.get_nowait()
-        #         except QueueEmpty:
-        #             pass
-
-        #     if(data_tr.i_crv.wr == 1):
-        #         try:
-        #             q.put_nowait(data_tr.i_crv.data)
-        #         except QueueFull:
-        #             pass
-
-        #     if (data_tr.i_crv.rd == 1 and q.full() == True):
-        #         q.get_nowait()
-
 
         while len(covered_values) != 2**g_width:
             data_tr = SeqItem("data_tr", None)
@@ -107,23 +61,13 @@ class RandomSeq(uvm_sequence):
             covered_values.append(data_tr.i_crv.tx_data)
             await self.finish_item(data_tr)
 
-class ReadSeq(uvm_sequence):
-    async def body(self):
-
-        #read enough to cause underflow
-        for i in range(2**g_depth+100):
-            data_tr = SeqItem("data_tr",0,1,0)
-            await self.start_item(data_tr)
-            await self.finish_item(data_tr)
 
 class TestAllSeq(uvm_sequence):
 
     async def body(self):
         seqr = ConfigDB().get(None, "", "SEQR")
         random = RandomSeq("random")
-        # read = ReadSeq("read_seq")
         await random.start(seqr)
-        # await read.start(seqr)
 
 
 class Driver(uvm_driver):
@@ -135,8 +79,6 @@ class Driver(uvm_driver):
         self.bfm = A_FifoBfm()
 
     async def launch_tb(self):
-        # await self.bfm.resetW()
-        # await self.bfm.resetR()
         await Combine(Join(cocotb.start_soon(self.bfm.resetW())),Join(cocotb.start_soon(self.bfm.resetR())))
         self.bfm.start_bfm()
 
@@ -144,7 +86,6 @@ class Driver(uvm_driver):
         await self.launch_tb()
         while True:
             data = await self.seq_item_port.get_next_item()
-            # await self.bfm.send_data((data.i_crv.wr, data.i_crv.rd,data.i_crv.data))
             await self.bfm.send_data((1, 0,data.i_crv.tx_data))
             await self.bfm.send_data((0, 0,data.i_crv.tx_data))
             await RisingEdge(self.bfm.dut.f_wr_done)
@@ -162,6 +103,8 @@ class Coverage(uvm_subscriber):
         self.cvg = set()
 
     def write(self, data):
+        number_cover(data)
+        coverage_db["top.i_tx_data"].add_threshold_callback(notify, 100)
         if((int(data)) not in self.cvg):
             self.cvg.add(int(data))
 
@@ -270,4 +213,7 @@ class Test(uvm_test):
         cocotb.start_soon(Clock(cocotb.top.i_clkW, 5, units="ns").start())
         cocotb.start_soon(Clock(cocotb.top.i_clkR, 15, units="ns").start())
         await self.test_all.start()
+
+        coverage_db.report_coverage(cocotb.log.info,bins=True)
+        coverage_db.export_to_xml(filename="coverage.xml")
         self.drop_objection()
