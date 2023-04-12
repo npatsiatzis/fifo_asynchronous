@@ -5,11 +5,44 @@ vunit formal_test(async_fifo(rtl)) {
 
 	default clock is rising_edge(i_clkW);
 
+	constant clk_bits : natural := 5;
+	signal w_clk_step : unsigned(clk_bits -1 downto 0);
+	signal r_clk_step : unsigned(clk_bits -1 downto 0);
+	attribute anyconst : boolean;
+	attribute anyconst of w_clk_step : signal is true;
+	attribute anyconst of r_clk_step : signal is true;
+
+	--signal w_clk_cnt : std_ulogic_vector(clk_bits -1 downto 0);
+	signal r_clk_cnt : std_ulogic_vector(clk_bits -1 downto 0);
+
+	--signal i_clk_w : std_ulogic;
+	--signal i_clk_r : std_ulogic;
+
+	assume {w_clk_step /= 0 : r_clk_step /= 0 : w_clk_step /=  r_clk_step};	
+
+	process(i_clkW)
+	begin
+		if(rising_edge(i_clkW)) then
+			--w_clk_cnt <= std_ulogic_vector(unsigned(w_clk_cnt) + w_clk_step);
+			r_clk_cnt <= std_ulogic_vector(unsigned(r_clk_cnt) + r_clk_step);
+		end if;
+	end process;
+
+
+	--assume always {i_clkW = w_clk_cnt(clk_bits-1)};
+	assume always {i_clkR = r_clk_cnt(clk_bits -1)};
+
+
+	reset_domains : assume {i_arstnW = i_arstnR};
+	reset_acivation : assume always{fell(i_arstnW) = fell(i_arstnR)};
+	assume never {rose(i_arstnW) && rose(i_clkW)};
+	assume never {rose(i_arstnR) && rose(i_clkR)};
+
 	--#####################################################
 
 	--check conditions after reset
-	after_reset_wr : assert always {i_arstnW = '0'} |=>{bin_w = 0};
-	after_reset_rd : assert always {i_arstnR = '0'} |=>{bin_r = 0};
+	after_reset_wr : assert always ({i_arstnW = '0'} |=>{bin_w = 0})@rising_edge(i_clkW);
+	after_reset_rd : assert always ({i_arstnR = '0'} |=>{bin_r = 0})@rising_edge(i_clkR);
 
 
 
@@ -32,7 +65,7 @@ vunit formal_test(async_fifo(rtl)) {
 	--random values to be pushed in succession to the FIFO 
 	signal val_1 : std_ulogic_vector(g_width -1 downto 0);
 	signal val_2 : std_ulogic_vector(g_width -1 downto 0);
-	attribute anyconst : boolean;
+	--attribute anyconst : boolean;
 	attribute anyconst of val_1 : signal is true;
 	attribute anyconst of val_2 : signal is true;
 
@@ -55,17 +88,17 @@ vunit formal_test(async_fifo(rtl)) {
 
 	--assume start conditions, not necesserily start from reset
 	--in any case, start with read/write addresses at 0.
-	reset_wr :assume {i_arstnW = '0' ; i_arstnW; true[+]; i_arstnW = '0' : i_arstnW};
-	reset_rd :assume {i_arstnR = '0' ; i_arstnR; true[+]; i_arstnR = '0' : i_arstnR};
+	reset_wr :assume ({i_arstnW = '0' ; i_arstnW; true[+]; i_arstnW = '0' : i_arstnW})@rising_edge(i_clkW);
+	reset_rd :assume ({i_arstnR = '0' ; i_arstnR; true[+]; i_arstnR = '0' : i_arstnR})@rising_edge(i_clkR);
 	--reset_addresses :assume {bin_w = 0 : bin_r = 0 : gray_w = 0 : gray_r = 0 : addr_w = 0 : addr_r = 0};
 
-	assume {o_full = '0' : o_full_next = '0' : o_empty = '1' : o_empty_next = '1'};
+	assume ({o_full = '0' : o_full_next = '0' : o_empty = '1' : o_empty_next = '1'})@rising_edge(i_clkW);
 
 	--assumptions regarding reset signals, both are
 	--synchronously asserted/deasserted
-	assume {not rose(i_arstnW)} |-> {not rose(i_arstnW)};
-	assume {not rose(i_arstnR)} |-> {not rose(i_arstnR)};
-	reset_domains : assume always{i_arstnW = i_arstnR};
+	assume ({not rose(i_arstnW)} |-> {not rose(i_arstnW)})@rising_edge(i_clkW);
+	assume ({not rose(i_arstnR)} |-> {not rose(i_arstnR)})@rising_edge(i_clkR);
+	--reset_domains : assume always{i_arstnW = i_arstnR};
 
 
 	--val_1 and val_2 should be different to check againt data duplication 
@@ -83,18 +116,19 @@ vunit formal_test(async_fifo(rtl)) {
 	-------------------
 
 	--check conditions after reset
-	check_wr_after_rst : assert always {fell(i_arstnW)} |=>{bin_w = 0};
-	check_rd_after_rst : assert always {fell(i_arstnR)} |=>{bin_r = 0};
+	check_wr_after_rst : assert always ({fell(i_arstnW)} |=>{bin_w = 0})@rising_edge(i_clkW);
+	check_rd_after_rst : assert always ({fell(i_arstnR)} |=>{bin_r = 0})@rising_edge(i_clkR);
 
 	--check that bin_w , bin_r remain stable in case of full and empty respectively.
-	check_addr_when_full : assert always {o_full ; i_arstnW} |-> {stable(bin_w)};
-	check_addr_when_empty: assert always {o_empty ; i_arstnR} |-> {stable(bin_r)};
+	check_addr_when_full : assert always (({o_full} |=> {stable(bin_w)}) abort not i_arstnW)@rising_edge(i_clkW);
+	check_addr_when_empty: assert always (({o_empty} |=> {stable(bin_r)})abort not i_arstnR)@rising_edge(i_clkR);
 
 	--verify that output order is preserved (also checks duplication and dataloss indirectly)
 	assert_out_order : assert always {flag_out2} |-> {flag_out1};
 
+	--verify that whenever a read takes place in state S3, then we read out val_2
+	assert_correct_data2 : assert always(({wr_state = S3 && i_ren && o_empty = '0'} |=> {o_dataR = val_2}) abort not i_arstnR)@rising_edge(i_clkR);
 
-	assert_correct_data2 : assert always(({wr_state = S3 && i_ren && o_empty = '0'} |=> {o_dataR = val_2}) abort not i_arstnR);
 
 	process(i_clkW)
 	begin
@@ -147,8 +181,8 @@ vunit formal_test(async_fifo(rtl)) {
 	------------------
 	
 	--cover empty to full and vice versa transitions
-	cover_full : cover{rose(o_full)};
-	cover_empty : cover{fell(o_empty)};
+	cover_full : cover{rose(o_full)}@rising_edge(i_clkW);
+	cover_empty : cover{fell(o_empty)}@rising_edge(i_clkR);
 	cover_full_to_empty : cover {true[*]; o_full;  true[*]; o_empty};
 	cover_empty_to_full : cover {true[*]; o_empty; true[*]; o_full};
 

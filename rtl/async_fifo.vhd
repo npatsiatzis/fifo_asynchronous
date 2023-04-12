@@ -7,7 +7,7 @@ use ieee.numeric_std.all;
 entity async_fifo is 
 generic(
 	g_stages : natural :=2;
-	g_width  : natural :=4;
+	g_width  : natural :=8;
 	g_depth  : natural :=4);
 port(
 	i_clkW : in std_ulogic;
@@ -42,6 +42,9 @@ architecture rtl of async_fifo is
 
 	signal o_full_next : std_ulogic;
 	signal o_empty_next : std_ulogic;
+
+	--signals used in verification
+	signal f_wr_done, f_rd_done : std_ulogic;
 
 begin
 
@@ -103,7 +106,9 @@ begin
 	fifo_write : process(i_clkW)
 	begin
 		if(rising_edge(i_clkW)) then
+			f_wr_done <= '0';
 			if(i_wren = '1' and (o_full = '0')) then
+				f_wr_done <= '1';
 				memory(to_integer(unsigned(addr_w))) <= i_dataW;
 			end if;
 		end if;
@@ -166,8 +171,11 @@ begin
 	begin
 		if(i_arstnR = '0') then
 			o_dataR <= (others => '0');
+			f_rd_done <= '0';
 		elsif(rising_edge(i_clkR)) then
+			f_rd_done <= '0';
 			if(i_ren = '1' and (o_empty = '0')) then
+				f_rd_done <= '1';
 				o_dataR <= memory(to_integer(unsigned(addr_r)));
 			end if;
 		end if;

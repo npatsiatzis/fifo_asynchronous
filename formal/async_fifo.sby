@@ -4,7 +4,7 @@ task_bmc
 
 [options]
 task_cover: mode cover
-task_cover: depth 35	
+task_cover: depth 100	
 task_bmc: mode bmc
 task_bmc: depth 35
 
@@ -17,4 +17,4 @@ prep -top async_fifo
 
 [files]
 async_fifo.psl
-async_fifo.vhd
+../rtl/async_fifo.vhd
