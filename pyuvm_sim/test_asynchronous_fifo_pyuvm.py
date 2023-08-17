@@ -18,7 +18,7 @@ def test_fifo(parameter):
     module = "tb_async_fifo"
     toplevel = "async_fifo"   
     vhdl_sources = [
-        os.path.join(rtl_dir, "../rtl/async_fifo.vhd"),
+        os.path.join(rtl_dir, "../rtl/VHDL/async_fifo.vhd"),
         ]
 
 

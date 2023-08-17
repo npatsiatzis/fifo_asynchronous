@@ -17,4 +17,4 @@ prep -top async_fifo
 
 [files]
 async_fifo.psl
-../rtl/async_fifo.vhd
+../rtl/VHDL/async_fifo.vhd
