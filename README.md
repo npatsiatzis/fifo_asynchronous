@@ -1,5 +1,7 @@
 ![example workflow](https://github.com/npatsiatzis/fifo_asynchronous/actions/workflows/regression.yml/badge.svg)
 ![example workflow](https://github.com/npatsiatzis/fifo_asynchronous/actions/workflows/formal.yml/badge.svg)
+![example workflow](https://github.com/npatsiatzis/fifo_asynchronous/actions/workflows/regression_pyuvm.yml/badge.svg)
+![example workflow](https://github.com/npatsiatzis/fifo_asynchronous/actions/workflows/coverage_pyuvm.yml/badge.svg)
 
 ### asynchronous FIFO RTL implementation
 
@@ -8,8 +10,11 @@
 - Gray fifo pointers for avoiding data incoherency
 - configurable FIFO depth and width
 - logic for generating empty/full
-- CoCoTB testbench for functional verification
-    - $ make
-- CoCoTB-test unit testing to exercise the CoCoTB tests across a range of values for the generic parameters
-    - $  SIM=ghdl pytest -n auto -o log_cli=True --junitxml=test-results.xml --cocotbxml=test-cocotb.xml
 
+
+-- RTL code in:
+- [VHDL](https://github.com/npatsiatzis/fifo_asynchronous/tree/main/rtl/VHDL)
+
+-- Functional verification with methodologies:
+- [cocotb](https://github.com/npatsiatzis/fifo_asynchronous/tree/main/cocotb_sim)
+- [pyuvm](https://github.com/npatsiatzis/fifo_asynchronous/tree/main/pyuvm_sim)
