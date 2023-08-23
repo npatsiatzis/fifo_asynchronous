@@ -19,3 +19,4 @@
 -- Functional verification with methodologies:
 - [cocotb](https://github.com/npatsiatzis/fifo_asynchronous/tree/main/cocotb_sim)
 - [pyuvm](https://github.com/npatsiatzis/fifo_asynchronous/tree/main/pyuvm_sim)
+- [uvm](https://github.com/npatsiatzis/fifo_asynchronous/tree/main/uvm_sim)
