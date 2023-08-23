@@ -104,7 +104,7 @@ module async_fifo
         end
     end
 
-    assign bin_r_next = (i_ren_r && !o_empty) ? bin_r : bin_r;
+    assign bin_r_next = (i_ren_r && !o_empty) ? bin_r + 1 : bin_r;
     assign gray_r_next  = (bin_r_next >> 1) ^ bin_r_next;
     assign addr_r = bin_r[G_DEPTH - 1 : 0];
 
