@@ -57,15 +57,19 @@ class A_FifoBfm(metaclass=utility_classes.Singleton):
 
     async def data_mon_bfm(self):
         while True:
-            await RisingEdge(self.dut.f_wr_done)
-            data = self.dut.i_dataW.value
-            self.data_mon_queue.put_nowait(data)
+            # await RisingEdge(self.dut.f_wr_done)
+            if(self.dut.i_wren.value == 1 and self.dut.o_full.value ==0):
+                data = self.dut.i_dataW.value
+                self.data_mon_queue.put_nowait(data)
+            await RisingEdge(self.dut.i_clkW)
 
     async def result_mon_bfm(self):
         while True:
-            await RisingEdge(self.dut.f_rd_done)
-            self.result_mon_queue.put_nowait(self.dut.o_dataR.value)
-
+            # await RisingEdge(self.dut.f_rd_done)
+            if(self.dut.i_ren.value == 1 and self.dut.o_empty.value ==0):
+                await RisingEdge(self.dut.i_clkR)
+                self.result_mon_queue.put_nowait(self.dut.o_dataR.value)
+            await RisingEdge(self.dut.i_clkR)
 
     def start_bfm(self):
         cocotb.start_soon(self.driver_bfm())

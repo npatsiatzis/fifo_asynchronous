@@ -28,22 +28,26 @@ def notify():
 # at_least = value is superfluous, just shows how you can determine the amount of times that
 # a bin must be hit to considered covered
 # even if g_data_with is >8, do not exercize full range as it is extremelly comp. heavy
-@CoverPoint("top.i_tx_data",xf = lambda x : x, bins = list(range(2**4,2**5)), at_least=1)
+@CoverPoint("top.i_tx_data",xf = lambda x : x, bins = list(range(2**g_width)), at_least=1)
 def number_cover(x):
     pass
 
 class crv_inputs(crv.Randomized):
-    def __init__(self,data):
+    def __init__(self,data,wren,ren):
         crv.Randomized.__init__(self)
         self.tx_data = data
+        self.wren = wren
+        self.ren = ren
         self.add_rand("tx_data",list(range(2**g_width)))
+        self.add_rand("wren",[0,1])
+        self.add_rand("ren",[0,1])
 
 # Sequence classes
 class SeqItem(uvm_sequence_item):
 
-    def __init__(self, name,data):
+    def __init__(self, name,data,wren,ren):
         super().__init__(name)
-        self.i_crv = crv_inputs(data)
+        self.i_crv = crv_inputs(data,wren,ren)
 
     def randomize_operands(self):
         self.i_crv.randomize()
@@ -53,7 +57,7 @@ class RandomSeq(uvm_sequence):
     async def body(self):
 
         while len(covered_values) != 2**g_width:
-            data_tr = SeqItem("data_tr", None)
+            data_tr = SeqItem("data_tr", None,None,None)
             await self.start_item(data_tr)
             data_tr.randomize_operands()
             while(data_tr.i_crv.tx_data in covered_values):
@@ -86,13 +90,16 @@ class Driver(uvm_driver):
         await self.launch_tb()
         while True:
             data = await self.seq_item_port.get_next_item()
+
             await self.bfm.send_data((1, 0,data.i_crv.tx_data))
-            await self.bfm.send_data((0, 0,data.i_crv.tx_data))
             await RisingEdge(self.bfm.dut.f_wr_done)
+            await self.bfm.send_data((0, 0,data.i_crv.tx_data))
+            await RisingEdge(self.bfm.dut.i_clkW)
+
+            
             await self.bfm.send_data((0, 1,0))
-            result = await self.bfm.get_result()
-            self.ap.write(result)
-            data.result = result
+            await RisingEdge(self.bfm.dut.f_rd_done)
+
             self.seq_item_port.item_done()
             await self.bfm.send_data((0, 0,0))
 
@@ -187,6 +194,7 @@ class Env(uvm_env):
         ConfigDB().set(None, "*", "SEQR", self.seqr)
         self.driver = Driver.create("driver", self)
         self.data_mon = Monitor("data_mon", self, "get_data")
+        self.res_mon = Monitor("res_mon", self, "get_result")
         self.coverage = Coverage("coverage", self)
         self.scoreboard = Scoreboard("scoreboard", self)
 
@@ -194,7 +202,7 @@ class Env(uvm_env):
         self.driver.seq_item_port.connect(self.seqr.seq_item_export)
         self.data_mon.ap.connect(self.scoreboard.data_export)
         self.data_mon.ap.connect(self.coverage.analysis_export)
-        self.driver.ap.connect(self.scoreboard.result_export)
+        self.res_mon.ap.connect(self.scoreboard.result_export)
 
 
 @pyuvm.test()
