@@ -126,36 +126,6 @@ class Scb {
             }
         }
 
-        // // Output interface monitor port
-        // void writeOut(OutTx* tx){
-        //     // We should never get any data from the output interface
-        //     // before an input gets driven to the input interface
-        //     if(in_q.empty()){
-        //         std::cout <<"Fatal Error in AluScb: empty InTx queue" << std::endl;
-        //         exit(1);
-        //     }
-
-        //     // Grab the transaction item from the front of the input item queue
-        //     InTx* in;
-        //     in = in_q.front();
-        //     in_q.pop_front();
-
-        //     if(in->i_data_w != tx->o_data){
-        //         std::cout << "Test Failure!" << std::endl;
-        //         std::cout << "Expected : " <<  in->i_data_w << std::endl;
-        //         std::cout << "Got : " << tx->o_data << std::endl;
-        //         exit(1);
-        //     } else {
-        //         std::cout << "Test PASS!" << std::endl;
-        //         std::cout << "Expected : " <<  in->i_data_w << std::endl;
-        //         std::cout << "Got : " << tx->o_data << std::endl;   
-        //     }
-
-        //     // As the transaction items were allocated on the heap, it's important
-        //     // to free the memory after they have been used
-        //     delete in;    //input monitor transaction
-        //     delete tx;    //output monitor transaction
-        // }
 };
 
 // interface driver
