@@ -109,6 +109,7 @@ class Scb {
                 std::cout << "Test Failure!" << std::endl;
                 std::cout << "Expected : " <<  in->i_data_w << std::endl;
                 std::cout << "Got : " << tx->o_data << std::endl;
+                exit(1);
             } else {
                 std::cout << "Test PASS!" << std::endl;
                 std::cout << "Expected : " <<  in->i_data_w << std::endl;
@@ -147,7 +148,6 @@ class InDrv {
 
                         new_tx_ready = 0;
                         state = 1;
-                        // std::cout << "DRIVER drove " << tx->i_data_w << std::endl;
                         delete tx;
                      }
 
@@ -164,11 +164,6 @@ class InDrv {
                     if(is_b_pos == 1 && dut->i_ren_r == 1 && dut->o_empty ==0){
                         new_tx_ready = 1;
                         state = 0;
-                        // if (dut->f_pulse_B == 0 && dut->f_pulse_B_prev ==1 && is_b_pos == 1){
-                        //     state = 0;
-                        //     new_tx_ready = 1;
-                        // }
-                        // std::cout << "DRIVER DONE" << std::endl;
                     }
                     break;
                 default:
@@ -202,7 +197,6 @@ class InMon {
                 // then pass the transaction item to the scoreboard
                 scb->writeIn(tx);
                 cvg->write_coverage(tx);
-                // std::cout << "MONITOR IN monitored " << tx->i_data_w << std::endl;
             }
         }
 };
@@ -249,23 +243,11 @@ class OutMon {
                         // then pass the transaction item to the scoreboard
                         scb->writeOut(tx);
                         cvg->write_coverage(tx);
-                        // std::cout << "MONITOR OUT monitored THERE" << tx->o_data << std::endl;
                     }
                     break;
                 default:
                     state = 0;
             }
-
-
-            // if(is_b_pos == 1 && dut->i_ren_r == 1 && dut->o_empty ==0) {
-            //     OutTx *tx = new OutTx();
-            //     tx->o_data = dut->o_data;
-
-            //     // then pass the transaction item to the scoreboard
-            //     scb->writeOut(tx);
-            //     cvg->write_coverage(tx);
-            //     std::cout << "MONITOR OUT monitored " << tx->o_data << std::endl;
-            // }
         }
 };
 
@@ -288,7 +270,7 @@ class Sequence{
         InTx* genTx(int & new_tx_ready){
             in = new InTx();
             // std::shared_ptr<InTx> in(new InTx());
-            if(rand()%5 == 0 && new_tx_ready == 1){
+            if(new_tx_ready == 1){
                 in->i_data_w = rand() % (1 << Vasync_fifo_async_fifo::G_WIDTH);   
 
                 while(cvg->is_covered(in->i_data_w) == false){
