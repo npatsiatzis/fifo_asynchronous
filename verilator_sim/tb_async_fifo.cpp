@@ -83,6 +83,7 @@ class OutCoverage {
 class Scb {
     private:
         std::deque<InTx*> in_q;
+        std::deque<OutTx*> out_q;
         
     public:
         // Input interface monitor port
@@ -92,35 +93,69 @@ class Scb {
         }
 
         // Output interface monitor port
-        void writeOut(OutTx* tx){
-            // We should never get any data from the output interface
-            // before an input gets driven to the input interface
-            if(in_q.empty()){
-                std::cout <<"Fatal Error in AluScb: empty InTx queue" << std::endl;
-                exit(1);
-            }
-
-            // Grab the transaction item from the front of the input item queue
-            InTx* in;
-            in = in_q.front();
-            in_q.pop_front();
-
-            if(in->i_data_w != tx->o_data){
-                std::cout << "Test Failure!" << std::endl;
-                std::cout << "Expected : " <<  in->i_data_w << std::endl;
-                std::cout << "Got : " << tx->o_data << std::endl;
-                exit(1);
-            } else {
-                std::cout << "Test PASS!" << std::endl;
-                std::cout << "Expected : " <<  in->i_data_w << std::endl;
-                std::cout << "Got : " << tx->o_data << std::endl;   
-            }
-
-            // As the transaction items were allocated on the heap, it's important
-            // to free the memory after they have been used
-            delete in;    //input monitor transaction
-            delete tx;    //output monitor transaction
+        void writeOut(OutTx *tx){
+            // Push the received transaction item into a queue for later
+            out_q.push_back(tx);
         }
+
+        void checkPhase(){
+            while(out_q.empty() == 0){
+                InTx* in;
+                in = in_q.front();
+                in_q.pop_front(); 
+
+                OutTx* out;
+                out = out_q.front();
+                out_q.pop_front(); 
+
+                if(in->i_data_w != out->o_data){
+                    std::cout << "Test Failure!" << std::endl;
+                    std::cout << "Expected : " <<  in->i_data_w << std::endl;
+                    std::cout << "Got : " << out->o_data << std::endl;
+                    exit(1);
+                } else {
+                    std::cout << "Test PASS!" << std::endl;
+                    std::cout << "Expected : " <<  in->i_data_w << std::endl;
+                    std::cout << "Got : " << out->o_data << std::endl;   
+                }
+
+                // As the transaction items were allocated on the heap, it's important
+                // to free the memory after they have been used
+                delete in;    //input monitor transaction
+                delete out;    //output monitor transaction
+            }
+        }
+
+        // // Output interface monitor port
+        // void writeOut(OutTx* tx){
+        //     // We should never get any data from the output interface
+        //     // before an input gets driven to the input interface
+        //     if(in_q.empty()){
+        //         std::cout <<"Fatal Error in AluScb: empty InTx queue" << std::endl;
+        //         exit(1);
+        //     }
+
+        //     // Grab the transaction item from the front of the input item queue
+        //     InTx* in;
+        //     in = in_q.front();
+        //     in_q.pop_front();
+
+        //     if(in->i_data_w != tx->o_data){
+        //         std::cout << "Test Failure!" << std::endl;
+        //         std::cout << "Expected : " <<  in->i_data_w << std::endl;
+        //         std::cout << "Got : " << tx->o_data << std::endl;
+        //         exit(1);
+        //     } else {
+        //         std::cout << "Test PASS!" << std::endl;
+        //         std::cout << "Expected : " <<  in->i_data_w << std::endl;
+        //         std::cout << "Got : " << tx->o_data << std::endl;   
+        //     }
+
+        //     // As the transaction items were allocated on the heap, it's important
+        //     // to free the memory after they have been used
+        //     delete in;    //input monitor transaction
+        //     delete tx;    //output monitor transaction
+        // }
 };
 
 // interface driver
@@ -384,6 +419,8 @@ int main(int argc, char** argv, char** env) {
         sim_time++;
     }
 
+
+    scb->checkPhase();
     m_trace->close();  
     exit(EXIT_SUCCESS);
 }
