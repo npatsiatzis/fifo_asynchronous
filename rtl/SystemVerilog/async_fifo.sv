@@ -3,7 +3,7 @@
 module async_fifo
     #
     (
-        parameter int G_WIDTH = 8,
+        parameter int G_WIDTH /*verilator public*/ = 8,
         parameter int G_DEPTH = 4
     )
 
@@ -69,14 +69,19 @@ module async_fifo
     end
 
     // calculate if FIFO will be full on next clock cycle
-    always_comb begin : calc_full
-        if (gray_w_next == {~gray_r_2_w[1][G_DEPTH],
-            ~gray_r_2_w[1][G_DEPTH - 1],gray_r_2_w[1][G_DEPTH -2 : 0]})
-            o_full_next = 1'b1;
-        else
-            o_full_next = 1'b0;
+    // continous assign is equivalent in terms of funtionality, but it does not 
+    // throw the "ALWCOMBORDER" warning with verilator
+    assign o_full_next = (gray_w_next == {~gray_r_2_w[1][G_DEPTH],
+            ~gray_r_2_w[1][G_DEPTH - 1],gray_r_2_w[1][G_DEPTH -2 : 0]}) ? 1'b1 : 1'b0;
 
-    end
+    // always_comb begin : calc_full
+    //     if (gray_w_next == {~gray_r_2_w[1][G_DEPTH],
+    //         ~gray_r_2_w[1][G_DEPTH - 1],gray_r_2_w[1][G_DEPTH -2 : 0]})
+    //         o_full_next = 1'b1;
+    //     else
+    //         o_full_next = 1'b0;
+
+    // end
 
     always_ff @(posedge i_clk_w or negedge i_arstN_w) begin : reg_full
         if(!i_arstN_w) begin
@@ -109,8 +114,8 @@ module async_fifo
     assign addr_r = bin_r[G_DEPTH - 1 : 0];
 
 
-    always_ff @(posedge i_clk_w or negedge i_arstN_w) begin : manage_r_addr
-        if(~i_arstN_w) begin
+    always_ff @(posedge i_clk_r or negedge i_arstN_r) begin : manage_r_addr
+        if(~i_arstN_r) begin
             gray_r <= '0;
             bin_r <= '0;
         end else begin
@@ -120,23 +125,25 @@ module async_fifo
     end
 
     // determine if FIFO will be empty on the next clock
-    always_comb begin : calc_empty
-        if(gray_r_next == gray_w_2_r[1])
-            o_empty_next = 1'b1;
-        else
-            o_empty_next = 1'b0;
-    end
+    assign o_empty_next = (gray_r_next == gray_w_2_r[1]) ? 1'b1 : 1'b0;
 
-    always_ff @(posedge i_clk_w or negedge i_arstN_w) begin : reg_empty
-        if(!i_arstN_w) begin
+    // always_comb begin : calc_empty
+    //     if(gray_r_next == gray_w_2_r[1])
+    //         o_empty_next = 1'b1;
+    //     else
+    //         o_empty_next = 1'b0;
+    // end
+
+    always_ff @(posedge i_clk_r or negedge i_arstN_r) begin : reg_empty
+        if(!i_arstN_r) begin
             o_empty <= 1'b1;
         end else begin
             o_empty <= o_empty_next;
         end
     end
 
-    always_ff @(posedge i_clk_w or negedge i_arstN_w) begin : mem_read
-        if(!i_arstN_w) begin
+    always_ff @(posedge i_clk_r or negedge i_arstN_r) begin : mem_read
+        if(!i_arstN_r) begin
             o_data <= '0;
         end else begin
             if (i_ren_r && !o_empty)
