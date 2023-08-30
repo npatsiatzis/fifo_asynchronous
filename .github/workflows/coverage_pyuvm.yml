@@ -1,5 +1,10 @@
 name: pyuvm Functional Coverage
-on: [push]
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * 0' # weekly
 jobs:
   run_tests:
     runs-on: ubuntu-latest
