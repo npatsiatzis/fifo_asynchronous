@@ -30,7 +30,7 @@ waveform.vcd: ./obj_dir/V$(TOPLEVEL)
 .stamp.verilate: $(RTL_DIR)/$(TOPLEVEL).sv tb_$(TOPLEVEL).cpp
 	@echo
 	@echo "### VERILATING ###"
-	verilator --build -j --coverage-line --trace --trace-coverage -Wall --trace --x-assign unique --x-initial unique -I$(RTL_DIR) -cc $(RTL_DIR)/$(TOPLEVEL).sv --exe tb_$(TOPLEVEL).cpp
+	verilator --build -j --coverage --trace --trace-coverage -Wall --trace --x-assign unique --x-initial unique -I$(RTL_DIR) -cc $(RTL_DIR)/$(TOPLEVEL).sv --exe tb_$(TOPLEVEL).cpp
 	@touch .stamp.verilate
 
 .PHONY:line_coverage
