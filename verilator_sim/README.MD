@@ -1,3 +1,5 @@
+![example workflow](https://github.com/npatsiatzis/fifo_asynchronous/actions/workflows/verilator_regression.yml/badge.svg)
+
 ### asynchronous FIFO RTL implementation
 
 

@@ -2,7 +2,8 @@
 ![example workflow](https://github.com/npatsiatzis/fifo_asynchronous/actions/workflows/formal.yml/badge.svg)
 ![example workflow](https://github.com/npatsiatzis/fifo_asynchronous/actions/workflows/regression_pyuvm.yml/badge.svg)
 ![example workflow](https://github.com/npatsiatzis/fifo_asynchronous/actions/workflows/coverage_pyuvm.yml/badge.svg)
-
+![example workflow](https://github.com/npatsiatzis/fifo_asynchronous/actions/workflows/verilator_regression.yml/badge.svg)
+![example workflow](https://github.com/npatsiatzis/fifo_asynchronous/actions/workflows/verilator_regression.yml/badge.svg)
 ### asynchronous FIFO RTL implementation
 
 
