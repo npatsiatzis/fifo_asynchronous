@@ -1,0 +1,25 @@
+name: Verilator Regression Test
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * 0' # weekly
+
+jobs:
+  run_tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.10.6]
+
+    steps:
+      - uses: actions/checkout@v3
+    
+      - name: regression
+        run: docker run -v ${{ github.workspace }}:/src -w /src/verilator_sim  --entrypoint make verilator/verilator:stable
+          
+      - name: Publish Coverage
+        run: |
+          cd verilator_sim/logs
+          bash <(curl -s https://codecov.io/bash) -f coverage.dat -f merged.info
