@@ -146,7 +146,8 @@ class InDrv {
         void drive(InTx *tx, int & new_tx_ready,int is_a_pos,int is_b_pos){
 
             // Don't drive anything if a transaction item doesn't exist
-
+            // NOTE : with this type of test, naturally o_full is expected NOT 
+            // to achieve full toggle coverage, everything else should though.
             switch(state) {
                 case 0:
                     if(tx != NULL && is_a_pos == 1){
@@ -399,7 +400,8 @@ int main(int argc, char** argv, char** env) {
 
     scb->checkPhase();
 
-    VerilatedCov::write();
+    Verilated::mkdir("logs");
+    VerilatedCov::write("logs/coverage.dat");
     m_trace->close();  
     exit(EXIT_SUCCESS);
 }
