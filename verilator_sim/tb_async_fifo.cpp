@@ -36,16 +36,16 @@ vluint64_t posedge_cnt = 0;
 class InTx {
     private:
     public:
-        unsigned int i_wren_w;
-        unsigned int i_ren_r;
-        unsigned int i_data_w;
+        unsigned int i_wren;
+        unsigned int i_ren;
+        unsigned int i_dataW;
 };
 
 
 // output interface transaction item class
 class OutTx {
     public:
-        unsigned int o_data;
+        unsigned int o_dataR;
 };
 
 //in domain Coverage
@@ -55,7 +55,7 @@ class InCoverage{
     
     public:
         void write_coverage(InTx *tx){
-            in_cvg.insert(tx->i_data_w);
+            in_cvg.insert(tx->i_dataW);
         }
 
         bool is_covered(unsigned int A){            
@@ -71,13 +71,13 @@ class OutCoverage {
 
     public:
         void write_coverage(OutTx* tx){
-            coverage.insert(tx->o_data);
+            coverage.insert(tx->o_dataR);
             cvg_size++;
         }
 
         bool is_full_coverage(){
-            return cvg_size == (1 << (Vasync_fifo_async_fifo::G_WIDTH))-1;
-            // return coverage.size() == (1 << (Vasync_fifo_async_fifo::G_WIDTH));
+            return cvg_size == (1 << (Vasync_fifo_async_fifo::g_width))-1;
+            // return coverage.size() == (1 << (Vasync_fifo_async_fifo::g_width));
         }
 };
 
@@ -111,15 +111,15 @@ class Scb {
                 out = out_q.front();
                 out_q.pop_front(); 
 
-                if(in->i_data_w != out->o_data){
+                if(in->i_dataW != out->o_dataR){
                     std::cout << "Test Failure!" << std::endl;
-                    std::cout << "Expected : " <<  in->i_data_w << std::endl;
-                    std::cout << "Got : " << out->o_data << std::endl;
+                    std::cout << "Expected : " <<  in->i_dataW << std::endl;
+                    std::cout << "Got : " << out->o_dataR << std::endl;
                     exit(1);
                 } else {
                     std::cout << "Test PASS!" << std::endl;
-                    std::cout << "Expected : " <<  in->i_data_w << std::endl;
-                    std::cout << "Got : " << out->o_data << std::endl;   
+                    std::cout << "Expected : " <<  in->i_dataW << std::endl;
+                    std::cout << "Got : " << out->o_dataR << std::endl;   
                 }
 
                 // As the transaction items were allocated on the heap, it's important
@@ -151,9 +151,9 @@ class InDrv {
             switch(state) {
                 case 0:
                     if(tx != NULL && is_a_pos == 1){
-                        dut->i_wren_w = 1;
-                        dut->i_ren_r = 0;
-                        dut->i_data_w = tx->i_data_w;
+                        dut->i_wren = 1;
+                        dut->i_ren = 0;
+                        dut->i_dataW = tx->i_dataW;
 
                         new_tx_ready = 0;
                         state = 1;
@@ -162,15 +162,15 @@ class InDrv {
 
                     break;
                 case 1:
-                    if(is_a_pos == 1 && dut->i_wren_w == 1 && dut->o_full ==0){
-                        dut->i_wren_w = 0;
-                        dut->i_ren_r = 1;
+                    if(is_a_pos == 1 && dut->i_wren == 1 && dut->o_full ==0){
+                        dut->i_wren = 0;
+                        dut->i_ren = 1;
                         new_tx_ready = 0;
                         state = 2;
                     }
                     break;
                 case 2:
-                    if(is_b_pos == 1 && dut->i_ren_r == 1 && dut->o_empty ==0){
+                    if(is_b_pos == 1 && dut->i_ren == 1 && dut->o_empty ==0){
                         new_tx_ready = 1;
                         state = 0;
                     }
@@ -200,9 +200,9 @@ class InMon {
 
         void monitor(int is_a_pos){
             // if(dut->i_valid == 1){
-            if(is_a_pos ==1 && dut->i_wren_w == 1 && dut->o_full ==0) {
+            if(is_a_pos ==1 && dut->i_wren == 1 && dut->o_full ==0) {
                 InTx *tx = new InTx();
-                tx->i_data_w = dut->i_data_w;
+                tx->i_dataW = dut->i_dataW;
                 // then pass the transaction item to the scoreboard
                 scb->writeIn(tx);
                 cvg->write_coverage(tx);
@@ -233,7 +233,7 @@ class OutMon {
 
             switch(state) {
                 case 0:
-                    if(is_b_pos == 1 && dut->i_ren_r == 1 && dut->o_empty ==0) {
+                    if(is_b_pos == 1 && dut->i_ren == 1 && dut->o_empty ==0) {
                         state = 1;
                      }
 
@@ -247,7 +247,7 @@ class OutMon {
                     if(is_b_pos == 1) {
                         state = 0;
                         OutTx *tx = new OutTx();
-                        tx->o_data = dut->o_data;
+                        tx->o_dataR = dut->o_dataR;
 
                         // then pass the transaction item to the scoreboard
                         scb->writeOut(tx);
@@ -280,10 +280,10 @@ class Sequence{
             in = new InTx();
             // std::shared_ptr<InTx> in(new InTx());
             if(new_tx_ready == 1){
-                in->i_data_w = rand() % (1 << Vasync_fifo_async_fifo::G_WIDTH);   
+                in->i_dataW = rand() % (1 << Vasync_fifo_async_fifo::g_width);   
 
-                while(cvg->is_covered(in->i_data_w) == false){
-                    in->i_data_w = rand() % (1 << Vasync_fifo_async_fifo::G_WIDTH);  
+                while(cvg->is_covered(in->i_dataW) == false){
+                    in->i_dataW = rand() % (1 << Vasync_fifo_async_fifo::g_width);  
 
                 }
                 return in;
@@ -295,11 +295,11 @@ class Sequence{
 
 
 void dut_reset (std::shared_ptr<Vasync_fifo> dut, vluint64_t &sim_time){
-    dut->i_arstN_w = 1;
-    dut->i_arstN_r = 1; 
+    dut->i_arstnW = 1;
+    dut->i_arstnR = 1; 
     if(sim_time >= 0 && sim_time < VERIF_START_TIME-1){
-        dut->i_arstN_w = 0;
-        dut->i_arstN_r = 0;
+        dut->i_arstnW = 0;
+        dut->i_arstnR = 0;
     }
 }
 
@@ -312,18 +312,18 @@ void simulation_eval(std::shared_ptr<Vasync_fifo> dut,VerilatedVcdC *m_trace, vl
 void simulation_tick_posedge(VerilatedVcdC *m_trace,char clk_source,std::shared_ptr<Vasync_fifo> dut, vluint64_t &ns)
 {   
     if (clk_source == 'A'){
-        dut->i_clk_w = 1;
+        dut->i_clkW = 1;
     } else {
-        dut->i_clk_r = 1;
+        dut->i_clkR = 1;
     }
 }
 
 void simulation_tick_negedge(VerilatedVcdC *m_trace,char clk_source,std::shared_ptr<Vasync_fifo> dut, vluint64_t &ns)
 {
     if (clk_source == 'A'){
-        dut->i_clk_w = 0;
+        dut->i_clkW = 0;
     } else {
-        dut->i_clk_r = 0;
+        dut->i_clkR = 0;
     }
 }
 
