@@ -99,6 +99,7 @@ class Driver(uvm_driver):
             
             await self.bfm.send_data((0, 1,0))
             await RisingEdge(self.bfm.dut.f_rd_done)
+            await self.bfm.send_data((0, 0,0))
 
             self.seq_item_port.item_done()
             await self.bfm.send_data((0, 0,0))

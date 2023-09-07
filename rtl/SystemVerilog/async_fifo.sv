@@ -41,6 +41,8 @@ module async_fifo
     logic o_empty_next;
     logic o_full_next;
 
+    logic f_wr_done, f_rd_done;
+
     // WRITE DOMAIN
 
     // cross the gray-encoded read address pointer over to the write domain
@@ -99,8 +101,10 @@ module async_fifo
     // FIFO write operation
 
     always_ff @(posedge i_clkW or negedge i_arstnW) begin : mem_write
+        f_wr_done <= 1'b0;
         if (i_wren && !o_full)
             mem[addr_w] <= i_dataW;
+            f_wr_done <= 1'b1;
     end
 
     // READ DOMAIN
@@ -155,9 +159,12 @@ module async_fifo
     always_ff @(posedge i_clkR or negedge i_arstnR) begin : mem_read
         if(!i_arstnR) begin
             o_dataR <= '0;
+            f_rd_done <= 1'b0;
         end else begin
+            f_rd_done <= 1'b0;
             if (i_ren && !o_empty)
                 o_dataR <= mem[addr_r];
+                f_rd_done <= 1'b1;
         end
     end
 
