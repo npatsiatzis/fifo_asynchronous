@@ -11,7 +11,7 @@ from cocotb.queue import Queue,QueueEmpty,QueueFull
 covered_number = []
 g_width = int(cocotb.top.g_width)
 g_depth = int(cocotb.top.g_depth)
-g_stages = int(cocotb.top.g_stages)
+
 fifo = []
 fifo_rd = []
 
