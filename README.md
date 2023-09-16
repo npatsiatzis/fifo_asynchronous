@@ -14,16 +14,6 @@
 - logic for generating empty/full
 
 
--- RTL code in:
-- [VHDL](https://github.com/npatsiatzis/fifo_asynchronous/tree/main/rtl/VHDL)
-- [SystemVerilog](https://github.com/npatsiatzis/fifo_asynchronous/tree/main/rtl/SystemVerilog)
-
--- Functional verification with methodologies:
-- [cocotb](https://github.com/npatsiatzis/fifo_asynchronous/tree/main/cocotb_sim)
-- [pyuvm](https://github.com/npatsiatzis/fifo_asynchronous/tree/main/pyuvm_sim)
-- [uvm](https://github.com/npatsiatzis/fifo_asynchronous/tree/main/uvm_sim)
-- [verilator](https://github.com/npatsiatzis/fifo_asynchronous/tree/main/verilator_sim)
-
 | Folder | Description |
 | ------ | ------ |
 | [rtl/SystemVerilog](https://github.com/npatsiatzis/fifo_asynchronous/tree/main/rtl/SystemVerilog) | SV RTL implementation files |
@@ -34,7 +24,7 @@
 | [verilator_sim](https://github.com/npatsiatzis/fifo_asynchronous/tree/main/verilator_sim) | Functional Verification with Verilator (C++ based) |
 
 
-<!-- 
+
 This is the tree view of the strcture of the repo.
 <pre>
 <font size = "2">
@@ -57,4 +47,4 @@ This is the tree view of the strcture of the repo.
     ├── Makefile
     └── verilator tb
 
-</pre> -->
+</pre>
