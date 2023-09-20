@@ -42,11 +42,21 @@ class InTx {
 };
 
 
-// output interface transaction item class
+// output interface transaction item class (data)
 class OutTx {
     public:
         unsigned int o_dataR;
+
 };
+
+// output interface transaction item class (control flow)
+class OutTxControl {
+    public:
+        unsigned int o_empty;
+        unsigned int o_full;
+};
+
+
 
 //in domain Coverage
 class InCoverage{
@@ -66,23 +76,39 @@ class InCoverage{
 //out domain Coverage
 class OutCoverage {
     private:
-        std::set <unsigned int> coverage;
-        int cvg_size = 0;
+        std::set <unsigned int> o_data_coverage;
+        std::set <unsigned int> o_full_coverage;
+        std::set <unsigned int> o_empty_coverage;
 
     public:
         void write_coverage(OutTx* tx){
-            coverage.insert(tx->o_dataR);
-            cvg_size++;
+            o_data_coverage.insert(tx->o_dataR); 
+        }
+
+        void write_coverage_control(OutTxControl* tx){
+            o_full_coverage.insert(tx->o_full);
+            o_empty_coverage.insert(tx->o_empty);
+            delete tx;
+        }
+
+        bool is_covered(unsigned int A){
+            return o_data_coverage.find(A) == o_data_coverage.end();
+        }
+        bool is_full_coverage_full_empty(){
+            if(o_full_coverage.size() == 2 && o_empty_coverage.size() == 2){
+                return true;
+            } else {
+                return false;
+            }
         }
 
         bool is_full_coverage(){
-            return cvg_size == (1 << (Vasync_fifo_async_fifo::g_width))-1;
-            // return coverage.size() == (1 << (Vasync_fifo_async_fifo::g_width));
+            return o_data_coverage.size() == (1 << (Vasync_fifo_async_fifo::g_width));
         }
 };
 
 
-// ALU scoreboard
+// scoreboard
 class Scb {
     private:
         std::deque<InTx*> in_q;
@@ -110,6 +136,8 @@ class Scb {
                 OutTx* out;
                 out = out_q.front();
                 out_q.pop_front(); 
+
+                std::cout << "asdas" << std::endl;
 
                 if(in->i_dataW != out->o_dataR){
                     std::cout << "Test Failure!" << std::endl;
@@ -143,42 +171,12 @@ class InDrv {
             state = 0;
         }
 
+
         void drive(InTx *tx, int & new_tx_ready,int is_a_pos,int is_b_pos){
 
-            // Don't drive anything if a transaction item doesn't exist
-            // NOTE : with this type of test, naturally o_full is expected NOT 
-            // to achieve full toggle coverage, everything else should though.
-            switch(state) {
-                case 0:
-                    if(tx != NULL && is_a_pos == 1){
-                        dut->i_wren = 1;
-                        dut->i_ren = 0;
-                        dut->i_dataW = tx->i_dataW;
-
-                        new_tx_ready = 0;
-                        state = 1;
-                        delete tx;
-                     }
-
-                    break;
-                case 1:
-                    if(is_a_pos == 1 && dut->i_wren == 1 && dut->o_full ==0){
-                        dut->i_wren = 0;
-                        dut->i_ren = 1;
-                        new_tx_ready = 0;
-                        state = 2;
-                    }
-                    break;
-                case 2:
-                    if(is_b_pos == 1 && dut->i_ren == 1 && dut->o_empty ==0){
-                        new_tx_ready = 1;
-                        state = 0;
-                    }
-                    break;
-                default:
-                    state = 0;
-            }
-
+            dut->i_wren = tx->i_wren;
+            dut->i_dataW = tx->i_dataW;
+            dut->i_ren = tx->i_ren;
         }
 };
 
@@ -199,7 +197,6 @@ class InMon {
         }
 
         void monitor(int is_a_pos){
-            // if(dut->i_valid == 1){
             if(is_a_pos ==1 && dut->i_wren == 1 && dut->o_full ==0) {
                 InTx *tx = new InTx();
                 tx->i_dataW = dut->i_dataW;
@@ -210,7 +207,7 @@ class InMon {
         }
 };
 
-// ALU output interface monitor
+// output interface monitor
 class OutMon {
     private:
         // Vasync_fifo *dut;
@@ -228,32 +225,52 @@ class OutMon {
             state = 0;
         }
 
-        void monitor(int is_b_pos){
+        void monitor(int is_a_pos, int is_b_pos){
+
+            //cover the empty and full signals independently from the o_dataR one.
+            if(is_a_pos == 1 || is_b_pos == 1){
+                OutTxControl *tx_control = new OutTxControl();
+                tx_control->o_empty = dut->o_empty;
+                tx_control->o_full = dut->o_full;
+                cvg->write_coverage_control(tx_control);
+            }
 
 
             switch(state) {
                 case 0:
+                    // a read is about to take place, save the value on next cycle
                     if(is_b_pos == 1 && dut->i_ren == 1 && dut->o_empty ==0) {
                         state = 1;
                      }
 
                     break;
-                case 1:
-                    if(is_b_pos == 1) {
-                        state = 2;
-                    }
-                    break;
-                case 2: 
-                    if(is_b_pos == 1) {
-                        state = 0;
+                case 1: {
+                    // read value from previous cycle, stay in state to read next value
+                    if(is_b_pos == 1 && dut->i_ren == 1 && dut->o_empty ==0) {
+                        state = 1;
+
                         OutTx *tx = new OutTx();
                         tx->o_dataR = dut->o_dataR;
+
+
+                        // then pass the transaction item to the scoreboard
+                        scb->writeOut(tx);
+                        cvg->write_coverage(tx);
+                    }
+                    // read value from previous cycle, go to that state next
+                    else if(is_b_pos == 1) {
+                        state = 0;
+
+                        OutTx *tx = new OutTx();
+                        tx->o_dataR = dut->o_dataR;
+
 
                         // then pass the transaction item to the scoreboard
                         scb->writeOut(tx);
                         cvg->write_coverage(tx);
                     }
                     break;
+                }
                 default:
                     state = 0;
             }
@@ -269,27 +286,43 @@ class OutMon {
 class Sequence{
     private:
         InTx* in;
-        // InCoverage *cvg;
-        std::shared_ptr<InCoverage> cvg;
+        std::shared_ptr<OutCoverage> cvg;
+        unsigned int wren;
+        unsigned int data;
+        unsigned int ren;
     public:
-        Sequence(std::shared_ptr<InCoverage> cvg){
+        Sequence(std::shared_ptr<OutCoverage> cvg){
             this->cvg = cvg;
+            wren = 0;
+            ren = 0;
+            data = 0;
         }
 
-        InTx* genTx(int & new_tx_ready){
+        InTx* genTx(int & new_tx_ready,int is_a_pos,int is_b_pos){
             in = new InTx();
-            // std::shared_ptr<InTx> in(new InTx());
-            if(new_tx_ready == 1){
-                in->i_dataW = rand() % (1 << Vasync_fifo_async_fifo::g_width);   
+            if(is_a_pos == 1) {
+                in->i_dataW = rand() % (1 << Vasync_fifo_async_fifo::g_width);  
+                in->i_wren = rand() %2;
 
-                while(cvg->is_covered(in->i_dataW) == false){
-                    in->i_dataW = rand() % (1 << Vasync_fifo_async_fifo::g_width);  
+                while(cvg->is_covered(in->i_dataW) == false  && cvg->is_full_coverage() == false){
+                   in->i_dataW = rand() % (1 << Vasync_fifo_async_fifo::g_width); 
 
                 }
-                return in;
-            } else {
-                return NULL;
+                wren = in->i_wren;
+                data = in->i_dataW;
+            } else{
+                in->i_dataW = data;
+                in->i_wren = wren;
             }
+            if(is_b_pos == 1) {
+                in->i_ren = rand() %2; 
+
+                ren = in->i_ren;
+            } else {
+                in->i_ren = ren;
+            }
+
+            return in;
         }
 };
 
@@ -349,17 +382,16 @@ int main(int argc, char** argv, char** env) {
     std::shared_ptr<OutCoverage> outCoverage(new OutCoverage());
     std::unique_ptr<InMon> inMon(new InMon(dut,scb,inCoverage));
     std::unique_ptr<OutMon> outMon(new OutMon(dut,scb,outCoverage));
-    std::unique_ptr<Sequence> sequence(new Sequence(inCoverage));
+    std::unique_ptr<Sequence> sequence(new Sequence(outCoverage));
 
-    while (outCoverage->is_full_coverage() == false) {
+    while (outCoverage->is_full_coverage() == false || outCoverage->is_full_coverage_full_empty() == false) {
     // while(sim_time < MAX_SIM_TIME*20) {
         // random reset 
         // 0-> all 0s
         // 1 -> all 1s
         // 2 -> all random
         Verilated::randReset(2); 
-        dut_reset(dut,sim_time);
-        
+        dut_reset(dut,sim_time);     
 
         if (POSEDGE(sim_time, CLK_A_PERIOD, CLK_A_PHASE)) {
                 simulation_tick_posedge(m_trace, 'A',dut,sim_time);
@@ -379,7 +411,7 @@ int main(int argc, char** argv, char** env) {
 
         if (sim_time >= VERIF_START_TIME) {
             // Generate a randomised transaction item 
-            tx = sequence->genTx(new_tx_ready);
+            tx = sequence->genTx(new_tx_ready,POSEDGE(sim_time, CLK_A_PERIOD, CLK_A_PHASE),POSEDGE(sim_time, CLK_B_PERIOD, CLK_B_PHASE));
             // Pass the generated transaction item in the driver
             //to convert it to pin wiggles
             //operation similar to than of a connection between
@@ -392,11 +424,10 @@ int main(int argc, char** argv, char** env) {
             // Monitor the output interface
             // also writes recovered result (out transaction) to
             // output coverage and scoreboard 
-            outMon->monitor(POSEDGE(sim_time, CLK_B_PERIOD, CLK_B_PHASE));
+            outMon->monitor(POSEDGE(sim_time, CLK_A_PERIOD, CLK_A_PHASE),POSEDGE(sim_time, CLK_B_PERIOD, CLK_B_PHASE));
         }
         sim_time++;
     }
-
 
     scb->checkPhase();
 

@@ -4,7 +4,7 @@ module async_fifo
     #
     (
         parameter int g_width /*verilator public*/ = 8,
-        parameter int g_depth = 4
+        parameter int g_depth = 6
     )
 
     (
@@ -41,7 +41,9 @@ module async_fifo
     logic o_empty_next;
     logic o_full_next;
 
+    /* verilator lint_off UNUSEDSIGNAL */
     logic f_wr_done, f_rd_done;
+    /* verilator lint_on UNUSEDSIGNAL */
 
     // WRITE DOMAIN
 
@@ -162,9 +164,10 @@ module async_fifo
             f_rd_done <= 1'b0;
         end else begin
             f_rd_done <= 1'b0;
-            if (i_ren && !o_empty)
+            if (i_ren && !o_empty) begin
                 o_dataR <= mem[addr_r];
                 f_rd_done <= 1'b1;
+            end
         end
     end
 
