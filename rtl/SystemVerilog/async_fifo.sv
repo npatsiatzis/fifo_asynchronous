@@ -41,9 +41,9 @@ module async_fifo
     logic o_empty_next;
     logic o_full_next;
 
-    /* verilator lint_off UNUSEDSIGNAL */
+    /* can use lint_off UNUSEDSIGNAL */
     logic f_wr_done, f_rd_done;
-    /* verilator lint_on UNUSEDSIGNAL */
+    /* can use lint_on UNUSEDSIGNAL */
 
     // WRITE DOMAIN
 
