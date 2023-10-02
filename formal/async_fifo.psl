@@ -20,17 +20,17 @@ vunit formal_test(async_fifo(rtl)) {
 
 	assume {w_clk_step /= 0 : r_clk_step /= 0 : w_clk_step /=  r_clk_step};	
 
-	process(i_clkW)
-	begin
-		if(rising_edge(i_clkW)) then
-			--w_clk_cnt <= std_ulogic_vector(unsigned(w_clk_cnt) + w_clk_step);
-			r_clk_cnt <= std_ulogic_vector(unsigned(r_clk_cnt) + r_clk_step);
-		end if;
-	end process;
+	--process(i_clkW)
+	--begin
+	--	if(rising_edge(i_clkW)) then
+	--		--w_clk_cnt <= std_ulogic_vector(unsigned(w_clk_cnt) + w_clk_step);
+	--		r_clk_cnt <= std_ulogic_vector(unsigned(r_clk_cnt) + r_clk_step);
+	--	end if;
+	--end process;
 
 
 	--assume always {i_clkW = w_clk_cnt(clk_bits-1)};
-	assume always {i_clkR = r_clk_cnt(clk_bits -1)};
+	--assume always {i_clkR = r_clk_cnt(clk_bits -1)};
 
 
 	reset_domains : assume {i_arstnW = i_arstnR};
@@ -88,8 +88,8 @@ vunit formal_test(async_fifo(rtl)) {
 
 	--assume start conditions, not necesserily start from reset
 	--in any case, start with read/write addresses at 0.
-	reset_wr :assume ({i_arstnW = '0' ; i_arstnW; true[+]; i_arstnW = '0' : i_arstnW})@rising_edge(i_clkW);
-	reset_rd :assume ({i_arstnR = '0' ; i_arstnR; true[+]; i_arstnR = '0' : i_arstnR})@rising_edge(i_clkR);
+	reset_wr :assume ({i_arstnW = '0'})@rising_edge(i_clkW);
+	reset_rd :assume ({i_arstnR = '0'})@rising_edge(i_clkR);
 	--reset_addresses :assume {bin_w = 0 : bin_r = 0 : gray_w = 0 : gray_r = 0 : addr_w = 0 : addr_r = 0};
 
 	assume ({o_full = '0' : o_full_next = '0' : o_empty = '1' : o_empty_next = '1'})@rising_edge(i_clkW);
