@@ -66,8 +66,10 @@
  8. ren, FIFO read request
  9. full, flag indicating FIFO is full
  1. empty, flag indicating FIFO is empty with valid data
- 7. clk, system clock
- 8. rst, system reset, asynchronous active high
+ 7. clkW, clock, domain write
+ 8. clkR, clock, domain read
+ 9. arstn_W, reset, asynchronous active low, domain write
+ 10. arstn_R, reset, asynchronous active low, domain read
 
 ### 6. PROTOCOL LAYER
 
@@ -75,7 +77,7 @@ The FIFO operates on single word writes or single word reads
 
 ### 7. ROBUSTNESS
 
-The FIFO shall indicated overflow and underflow conditions.
+Does not apply.
 
 ### 8. HARDWARE AND SOFTWARE
 
